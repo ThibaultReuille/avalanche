@@ -1,2 +1,2 @@
-# avalanche
-Realtime and online model development framework
+# Avalanche
+Realtime and Online Model Development Framework

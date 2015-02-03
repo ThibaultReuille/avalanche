@@ -1,0 +1,40 @@
+{
+	"attributes" : {
+		"plugins" : [
+			{ "name" : "sampler", "filename" : "plugins/sampler.py" },
+			{ "name" : "matcher", "filename" : "plugins/matcher.py" }
+		]
+	},
+
+	"nodes" : [
+		{
+			"id" : "LOCAL",
+			"type" : "0mq-stream",
+			"label" : "Local Stream",
+			"attributes" : { "url" : "tcp://localhost:10000" }
+		},
+
+		{
+			"id" : "0",
+			"type" : "0mq-node",
+			"label" : "Node 0",
+			"attributes" :
+			{
+				"port" : 10001,
+
+				"plugin" : "sampler",
+				"sampler-probability" : 0.5
+			}
+		}
+	],
+
+	"edges" : [
+		{
+			"id" : "LOCAL->0",
+			"type" : "0mq-edge",
+			"label" : "0MQ Bridge",
+ 			"src" : "LOCAL",
+			"dst" : "0"
+		}
+	]
+} 
