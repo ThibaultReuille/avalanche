@@ -6,6 +6,10 @@ class Plugin(object):
 		self.string = info['attributes']['matcher-string']
 		self.field = info['attributes']['matcher-field']
 
+		self.invert = False
+		if "matcher-invert" in info['attributes']:
+			self.invert = info['attributes']['matcher-invert']
+
 	def run(self, node):
 		while True:
 			data = node.input.recv()
@@ -14,7 +18,7 @@ class Plugin(object):
 			if self.field not in message:
 				continue
 
-			if not fnmatch.fnmatch(message[self.field], self.string):
+			if fnmatch.fnmatch(message[self.field], self.string) == self.invert:
 				continue
 
 			node.output.send_json(message)
