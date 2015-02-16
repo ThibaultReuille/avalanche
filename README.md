@@ -31,7 +31,11 @@ Great! Now you know how to virtually define your full message processing pipelin
 
 ## Write your own plugin
 
+For a more accurate description, let's refer to our plugin template:
 
+[Avalanche Plugin Template](https://github.com/ThibaultReuille/avalanche/blob/master/plugins/template.json "Avalanche Plugin Template") 
 
+For the most part, the comments in this template file are self-explanatory. However we may simply add that each node plugin will loaded and bound to its node. The node information and members can be retrieved either in the constructor or through the node instance. The node processing code will run in its own thread and will receive/send info through the input/output node streams. The plugin definition interface is easy and simple enough for you to implement any kind of metrics, models, filters or any other realtime pipeline element.
 
+The rest is up to you!
 
