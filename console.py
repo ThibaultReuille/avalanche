@@ -3,6 +3,8 @@
 import sys
 import zmq
 import json
+import time
+import pprint as pp
 
 if len(sys.argv) != 3:
 	print("Usage: {0} <host> <port>".format(sys.argv[0]))
@@ -19,4 +21,5 @@ s.setsockopt(zmq.SUBSCRIBE, '')
 while True:
     line = s.recv()
     jdata = json.loads(line)
-    print(jdata)
+
+    print("{0}: {1}\n".format(time.time(), jdata))

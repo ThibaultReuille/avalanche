@@ -23,7 +23,7 @@
 				"port" : 10001,
 
 				"plugin" : "sampler",
-				"sampler-probability" : 0.5
+				"sampler:probability" : 0.5
 			}
 		}
 	],

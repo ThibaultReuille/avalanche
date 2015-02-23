@@ -3,22 +3,23 @@ import fnmatch
 
 class Plugin(object):
 	def __init__(self, info):
-		self.string = info['attributes']['matcher-string']
-		self.field = info['attributes']['matcher-field']
-
-		self.invert = False
-		if "matcher-invert" in info['attributes']:
-			self.invert = info['attributes']['matcher-invert']
+		self.matches = info['attributes']['matcher:matches']
 
 	def run(self, node):
 		while True:
 			data = node.input.recv()
 			message = json.loads(data)
 
-			if self.field not in message:
-				continue
+			match = True
+			for item in self.matches:
+				f = item['field']
+				s = item['string']
+				v = item['value']
+				if fnmatch.fnmatch(message[f], s) != v:
+					match = False
+					break
 
-			if fnmatch.fnmatch(message[self.field], self.string) == self.invert:
+			if not match:
 				continue
 
 			node.output.send_json(message)
