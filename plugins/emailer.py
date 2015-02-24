@@ -33,7 +33,7 @@ class Plugin(object):
 
 			server = smtplib.SMTP(self.smtp_server)
 			try:
-				server.sendmail(mail_name, [mail_to], msg.as_string())
+				server.sendmail(self.mail_name, [self.mail_to], msg.as_string())
 			finally:
 				server.quit()
 
