@@ -18,8 +18,26 @@ print("Connecting to " + url + " ...")
 s.connect(url)
 s.setsockopt(zmq.SUBSCRIBE, '')
 
+metrics = dict()
+metrics['volume'] = 0
+metrics['start_time'] = time.time()
+
+time_delay = 10
+
 while True:
     line = s.recv()
     jdata = json.loads(line)
 
-    print("{0}: {1}\n".format(time.time(), jdata))
+    metrics['current_time'] = time.time()
+    metrics['volume'] += 1
+
+    if metrics['current_time'] - metrics['start_time'] > time_delay:
+
+    	metrics['msg/sec'] = metrics['volume'] / (metrics['current_time'] - metrics['start_time'])
+    	print(json.dumps(metrics))
+    	
+    	metrics['start_time'] = metrics['current_time']
+    	metrics['volume'] = 0
+
+    print("{0}: {1}".format(time.time(), json.dumps(jdata)))
+
