@@ -26,10 +26,9 @@ class Plugin(object):
 
 		d = message
 		if type(message) is list:
-			d = message[0]
-			#d = dict()
-			#for i in xrange(0, len(message) - 1):
-			#	d[i] = message[i]
+			d = dict()
+			for i in xrange(0, len(message) - 1):
+				d[i] = message[i]
 		content += "\t{0}\n".format(json2html.convert(json = d))
 
 		content += "\t<br/><br/><b>{0}</b>\n".format(uid)
