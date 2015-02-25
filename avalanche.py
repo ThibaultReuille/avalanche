@@ -85,8 +85,6 @@ class ZMQ_Node(Node):
 	
 	def run(self):
 		self.plugin.run(self)
-
-		return message
 	
 # ----- Edges -----
 

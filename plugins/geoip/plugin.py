@@ -19,6 +19,8 @@ class Plugin(object):
 				value = None
 				try:
 					get_key = action['get']
+					if get_key not in message:
+						continue
 					set_key = action['set']
 					action_key = action['action']
 					if action_key == 'asn_by_addr':
