@@ -19,7 +19,7 @@ class Plugin(object):
 			elif 'file' in m:
 				with open(m['file'], "rU") as infile:
 					lines = [ line.strip() for line in infile.readlines() ]
-					print("lines", lines)
+					# print("lines", lines)
 					self.processor.append({
 						'field' : f,
 						'value' : v,
