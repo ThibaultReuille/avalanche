@@ -26,7 +26,6 @@ time_delay = 10
 
 while True:
     line = s.recv()
-    jdata = json.loads(line)
 
     metrics['current_time'] = time.time()
     metrics['volume'] += 1
@@ -39,5 +38,5 @@ while True:
     	metrics['start_time'] = metrics['current_time']
     	metrics['volume'] = 0
 
-    print("{0}: {1}".format(time.time(), json.dumps(jdata)))
+    print("{0}: {1}".format(time.time(), line))
 
