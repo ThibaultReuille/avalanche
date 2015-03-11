@@ -28,7 +28,7 @@ class Plugin(object):
 			message = json.loads(data)
 
 			uid = uuid.uuid4()
-			timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+			timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S UTC')
 
 			subject = "{0} - {1}".format(self.mail_subject, timestamp)
 			text = self.make_content(uid, message)
