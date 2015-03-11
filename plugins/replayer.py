@@ -10,16 +10,16 @@ class Plugin(object):
 		self.delimiter = info['attributes']['replayer:delimiter']
 		self.delay = 1.0
 
+		self.log_files = glob.glob(self.path)
+		if len(self.log_files) == 0:
+			print("[ERROR] No file found in path for replay!")
+ 
 	def run(self, node):
-
 		while True:
-
-			for filename in glob.glob(self.path):
-
+			for filename in self.log_files:
 				with open(filename, "rU") as logfile:
 
 					for line in logfile:
-
 						split = line.strip().split(self.delimiter)
 						if len(split) != len(self.schema):
 							continue
@@ -30,9 +30,8 @@ class Plugin(object):
 						
 						node.output.send_json(message)
 
-			node.output.send_json({ "type" : "---------------------------------------------" })
 			time.sleep(self.delay)
-			break
+			#break
 
 if __name__ == "__main__":
 	print("Please import this file!")

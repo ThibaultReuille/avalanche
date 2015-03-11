@@ -1,8 +1,8 @@
+
 {
 	"attributes" : {
 		"plugins" : [
-			{ "name" : "sampler", "filename" : "plugins/sampler.py" },
-			{ "name" : "matcher", "filename" : "plugins/matcher.py" }
+			{ "name" : "sampler", "filename" : "plugins/sampler.py" }
 		]
 	},
 
@@ -17,7 +17,7 @@
 		{
 			"id" : "0",
 			"type" : "0mq-node",
-			"label" : "Node 0",
+			"label" : "Sampler",
 			"attributes" :
 			{
 				"port" : 10001,
