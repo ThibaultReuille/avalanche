@@ -1,57 +1,74 @@
 import json
 import fnmatch
 
+class Filter(object):
+	def __init__(self, attributes):
+		self.field = attributes['field']
+		self.condition = attributes['condition']
+		self.result = attributes['result']
+
+		if 'values' in attributes:
+			self.values = attributes['values']
+		elif 'file' in attributes:
+			with open(attributes['file'], "rU") as infile:
+				self.values = [ line.strip() for line in infile.readlines() ]
+		else:
+			raise Exception("No 'values' or 'file' field defined!")
+
+	def test(self, message):
+		raise Exception("Not implemented!")
+
+class InFilter(Filter):
+	def __init__(self, attributes):
+		super(InFilter, self).__init__(attributes)
+		self.elements = set(self.values)
+
+	def test(self, message):
+		return message[self.field] in self.elements
+
+class MatchFilter(Filter):
+	def __init__(self, attributes):
+		super(MatchFilter, self).__init__(attributes)
+
+	def test(self, message):
+		for element in self.values:
+			if not fnmatch.fnmatch(message[self.field], element):
+				return False
+		return True
+
 class Plugin(object):
 	def __init__(self, info):
-		self.matches = info['attributes']['matcher:matches']
+
+		processor_info = info['attributes']['matcher:processor']
 
 		self.processor = list()
-		for m in self.matches:
-			f = m['field']
-			v = m['value']
+		for i in range(len(processor_info)):
+			try:
+				p = None
+				if processor_info[i]['condition'] == "in":
+					p = InFilter(processor_info[i])
+				elif processor_info[i]['condition'] == "match":
+					p = MatchFilter(processor_info[i])
+				else:
+					raise Exception("Unknown condition: '{0}'!".format(processor_info['condition']))
+				self.processor.append(p)
+			except Exception, e:
+				print("[ERROR] Couldn't parse matcher processor: {0}".format(str(e)))
 
-			if 'string' in m:
-				self.processor.append({
-					'field' : f,
-					'value' : v,
-					'lines' : [ m['string'] ]
-				})
-			elif 'file' in m:
-				with open(m['file'], "rU") as infile:
-					lines = [ line.strip() for line in infile.readlines() ]
-					# print("lines", lines)
-					self.processor.append({
-						'field' : f,
-						'value' : v,
-						'lines' : lines
-					})
-			else:
-				print("[ERROR] Couldn't parse matcher element! Skipped.")
-
+				
 	def run(self, node):
 		while True:
 			data = node.input.recv()
 			message = json.loads(data)
 
-			match = True
+			result = True
 			for item in self.processor:
-				f = item['field']
-				v = item['value']
-
-				local_match = False
-				for line in item['lines']:
-					local_match = fnmatch.fnmatch(message[f], line) or local_match
-					if local_match:
-						break
-
-				match = match and (local_match == v)
-				if not match:
+				result = result and (item.test(message) == item.result)
+				if not result:
 					break
 
-			if not match:
-				continue
-
-			node.output.send_json(message)
+			if result:
+				node.output.send_json(message)
 	
 if __name__ == "__main__":
 	print("Please import this file!")
