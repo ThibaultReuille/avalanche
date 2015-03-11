@@ -26,6 +26,8 @@ class Plugin(object):
 					if action_key == 'asn_by_addr':
 						value = self.gi_asn.asn_by_addr(message[get_key])
 					# TODO : Implement other GeoIP actions
+				except:
+					pass
 				finally:
 					geoip[set_key] = value
 
