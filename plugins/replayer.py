@@ -5,9 +5,9 @@ import glob
 
 class Plugin(object):
 	def __init__(self, info):
-		self.path = info['attributes']['replayer:path']
-		self.schema = info['attributes']['replayer:schema']
-		self.delimiter = info['attributes']['replayer:delimiter']
+		self.path = info['attributes']['path']
+		self.schema = info['attributes']['schema']
+		self.delimiter = info['attributes']['delimiter']
 		self.delay = 1.0
 
 		self.log_files = glob.glob(self.path)

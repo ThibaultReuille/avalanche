@@ -8,33 +8,27 @@
 
 	"nodes" : [
 		{
-			"id" : "LOCAL",
-			"type" : "0mq-stream",
-			"label" : "Local Stream",
-			"attributes" : { "url" : "tcp://localhost:10000" }
+			"id" : 0,
+			"type" : "stream",
+			"url" : "tcp://avalanche.r1.usw1.opendns.com:10001/"
 		},
 
 		{
-			"id" : "0",
-			"type" : "0mq-node",
-			"label" : "Sampler",
+			"id" : 1,
+			"type" : "sampler",
+			"port" : 10001,
 			"attributes" :
 			{
-				"port" : 10001,
-
-				"plugin" : "sampler",
-				"sampler:probability" : 0.5
+				"probability" : 0.01
 			}
 		}
 	],
 
 	"edges" : [
 		{
-			"id" : "LOCAL->0",
-			"type" : "0mq-edge",
-			"label" : "0MQ Bridge",
- 			"src" : "LOCAL",
-			"dst" : "0"
+			"id" : 0,
+ 			"src" : 0,
+			"dst" : 1
 		}
 	]
 } 

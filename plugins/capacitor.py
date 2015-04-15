@@ -5,10 +5,10 @@ class Plugin(object):
 	def __init__(self, info):
 		self.message_limit = None
 		self.time_limit = None
-		if 'capacitor:message-limit' in info['attributes']:
-			self.message_limit = info['attributes']['capacitor:message-limit']
-		if 'capacitor:time-limit' in info['attributes']:
-			self.time_limit = info['attributes']['capacitor:time-limit']
+		if 'message-limit' in info['attributes']:
+			self.message_limit = info['attributes']['message-limit']
+		if 'time-limit' in info['attributes']:
+			self.time_limit = info['attributes']['time-limit']
 
 	def run(self, node):
 

@@ -9,11 +9,11 @@ from email.mime.text import MIMEText
 
 class Plugin(object):
 	def __init__(self, info):
-		self.smtp_server = info['attributes']['emailer:smtp-server']
-		self.mail_from = info['attributes']['emailer:mail-from']
-		self.mail_to = info['attributes']['emailer:mail-to']
-		self.mail_name = info['attributes']['emailer:mail-name']
-		self.mail_subject = info['attributes']['emailer:mail-subject']
+		self.smtp_server = info['attributes']['smtp-server']
+		self.mail_from = info['attributes']['mail-from']
+		self.mail_to = info['attributes']['mail-to']
+		self.mail_name = info['attributes']['mail-name']
+		self.mail_subject = info['attributes']['mail-subject']
 
 	def make_content(self, uid, message):
 		content = ""

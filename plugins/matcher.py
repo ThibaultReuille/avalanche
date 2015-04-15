@@ -39,7 +39,7 @@ class MatchFilter(Filter):
 class Plugin(object):
 	def __init__(self, info):
 
-		processor_info = info['attributes']['matcher:processor']
+		processor_info = info['attributes']['processor']
 
 		self.processor = list()
 		for i in range(len(processor_info)):

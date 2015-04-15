@@ -6,7 +6,7 @@ class Plugin(object):
 	def __init__(self, info):
 		current_dir = os.path.dirname(os.path.realpath(__file__))
 		self.gi_asn = pygeoip.GeoIP(current_dir + "/GeoIPASNum.dat")
-		self.actions = info['attributes']['geoip:actions']
+		self.actions = info['attributes']['actions']
 
 	def run(self, node):
 		while True:

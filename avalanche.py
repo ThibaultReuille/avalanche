@@ -18,12 +18,12 @@ context = dict()
 
 class Plugin(object):
 	def __init__(self):
-		self.tracing = True
+		pass
 
 	def run(self, node):
 		while True:
 			data = node.input.recv()
-			if self.tracing:
+			if node.tracing:
 				message = json.loads(data)
 				node.trace(message)
 				node.output.send_json(message)
@@ -34,32 +34,17 @@ class Plugin(object):
 
 class Node(object):
 	def __init__(self, info):
-		super(Node, self).__init__()
-		
 		global context
 
 		self.info = info
 		self.url = None
 		self.thread = None
+		self.tracing = False
 
-		if 'plugin' not in self.info['attributes']:
-			self.plugin = Plugin()
+		if 'type' in self.info and self.info['type'] != 'stream':
+			self.plugin = context['plugins'][self.info['type']](info)
 		else:
-
-			self.plugin = context['plugins'][self.info['attributes']['plugin']](info)
-		
-class ZMQ_Stream(Node):
-	def __init__(self, info):
-		super(ZMQ_Stream, self).__init__(info)
-		
-		if 'url' in self.info['attributes']:
-			self.url = self.info['attributes']['url']
-			print("\t. URL: {0}".format(self.url))
-		else:
-			print("\t. Error: Missing URL!")
-
-	def run(self):
-		pass
+			self.plugin = None
 
 class ZMQ_Node(Node):
 	def __init__(self, info):
@@ -68,13 +53,24 @@ class ZMQ_Node(Node):
 
 		ctx = zmq.Context.instance()
 
-		self.input = ctx.socket(zmq.SUB)
-		self.output = ctx.socket(zmq.PUB)
+		if 'url' in self.info:
+			self.input = None
+			self.output = None
+			self.url = self.info['url']
 
-		port = self.info['attributes']['port']
-		self.url = "tcp://localhost:{0}/".format(port)
-		self.output.bind("tcp://*:{0}/".format(port))
-		print("\t. Started on {0}.".format(self.url))
+		elif 'port' in self.info:
+			self.input = ctx.socket(zmq.SUB)
+			self.output = ctx.socket(zmq.PUB)
+
+			port = self.info['port']
+			self.url = "tcp://localhost:{0}/".format(port)
+			self.output.bind("tcp://*:{0}/".format(port))
+
+		else:
+			print("[ERROR] url/port field is missing!")
+			return
+
+		print("\tURL: {0}".format(self.url))
 
 	def trace(self, message):
 		if self.tracing:
@@ -104,18 +100,8 @@ class ZMQ_Edge(Edge):
 		self.dst = context['graph'].nodes[info['dst']]
 		print("\t. Connecting {0} and {1} ...".format(self.src.info['id'], self.dst.info['id']))
 
-		src_type = self.src.info['type']
-		dst_type = self.dst.info['type']
-
-		if src_type == '0mq-stream' and dst_type == '0mq-node':
-			self.dst.input.connect(self.src.url)
-			self.dst.input.setsockopt(zmq.SUBSCRIBE, '')
-
-		elif src_type == '0mq-node' and dst_type == '0mq-node':
-			self.dst.input.connect(self.src.url)
-			self.dst.input.setsockopt(zmq.SUBSCRIBE, '')
-		else:
-			print("Error: Coulnd't connect nodes. Invalid types!")
+		self.dst.input.connect(self.src.url)
+		self.dst.input.setsockopt(zmq.SUBSCRIBE, '')
 
 	def run(self):
 		pass
@@ -126,39 +112,31 @@ class Graph(object):
 		self.nodes = dict()
 		self.edges = dict()
 
+		self.threads = list()
+
 	def create_node(self, info):
 		if 'id' not in info or 'type' not in info:
 			return None
-
 		uid = info['id']
-
-		if info['type'] == '0mq-stream':
-			self.nodes[uid] = ZMQ_Stream(info)
-		elif info['type'] == '0mq-node':
-			self.nodes[uid] = ZMQ_Node(info)
-		else:
-			print("\t. Unknown node type '{0}'!".format(info['type']))
-			self.nodes[uid] = None
+		self.nodes[uid] = ZMQ_Node(info)
 
 	def create_edge(self, info):
-		if 'id' not in info or 'type' not in info:
+		if 'id' not in info:
 			return None
-
 		uid = info['id']
-		if info['type'] == '0mq-edge':
-			self.edges[uid] = ZMQ_Edge(info)
-		else:
-			print("\t. Unknown node type '{0}'!".format(info['type']))
-			self.edges[uid] = None
+		self.edges[uid] = ZMQ_Edge(info)
 
 	def start(self):
 		for k in self.nodes.keys():
+			if self.nodes[k].plugin is None:
+				continue
 			self.nodes[k].thread = threading.Thread(target=self.nodes[k].run)
 			self.nodes[k].thread.start()
+			self.threads.append(self.nodes[k].thread)
 
 	def wait(self):
-		for k in self.nodes.keys():
-			self.nodes[k].thread.join()
+		for thread in self.threads:
+			thread.join()
 
 # ----- Main -----
 
@@ -204,12 +182,12 @@ def main(conf):
 	context['graph'] = Graph()
 
 	for item in conf['nodes']:
-		print("[NODE] {0}: {1}, '{2}'.".format(item['id'], item['type'], item['label']))
+		print("[NODE] {0}: {1}".format(item['id'], item['type']))
 		context['graph'].create_node(item)
 
 	edges = dict()
 	for item in reversed(conf['edges']): # NOTE : Naive topological sort
-		print("[EDGE] {0} ({3}->{4}): {1}, '{2}'.".format(item['id'], item['type'], item['label'], item['src'], item['dst']))
+		print("[EDGE] {0}: {1} -> {2}".format(item['id'], item['src'], item['dst']))
 		context['graph'].create_edge(item)
 
 	print("[INFO] Launching node threads ...")

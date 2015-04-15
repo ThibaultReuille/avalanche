@@ -3,7 +3,7 @@ import json
 
 class Plugin(object):
 	def __init__(self, info):
-		self.probability = info['attributes']['sampler:probability']
+		self.probability = info['attributes']['probability']
 
 	def run(self, node):
 		while True:
