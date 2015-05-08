@@ -16,14 +16,17 @@ class Plugin(object):
 
 		while True:
 
-			db = MySQLdb.connect(host=self.host, user=self.user, passwd=self.passwd, db=self.database)
+			connection = MySQLdb.connect(host=self.host, user=self.user, passwd=self.passwd, db=self.database)
 
-			cursor = db.cursor() 
+			cursor = connection.cursor() 
 			cursor.execute(self.query)
 
 			for row in cursor.fetchall() :
 			    print row
 			    node.output.send_json(row)
+
+			cursor.close()
+			connection.close()
 
 			time.sleep(self.period)
 
