@@ -9,16 +9,17 @@ class Plugin(object):
 		self.user = info['attributes']['user']
 		self.passwd = info['attributes']['passwd']
 		self.database = info['attributes']['database']
+		self.query = info['attributes']['query']
 		self.period = info['attributes']['period']
 
 	def run(self, node):
 
 		while True:
 
-			db = MySQLdb.connect(host=self.host, user=self.user, passwd=self.passwd, db=self.database) 
+			db = MySQLdb.connect(host=self.host, user=self.user, passwd=self.passwd, db=self.database)
 
 			cursor = db.cursor() 
-			cursor.execute("SELECT * FROM YOUR_TABLE_NAME")
+			cursor.execute(self.query)
 
 			for row in cursor.fetchall() :
 			    print row
