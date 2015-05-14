@@ -1,4 +1,3 @@
-import random
 import json
 
 class Plugin(object):
