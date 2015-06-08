@@ -10,7 +10,7 @@
 		{
 			"id" : 0,
 			"type" : "stream",
-			"url" : "tcp://avalanche.r1.usw1.opendns.com:10001/"
+			"url" : "tcp://localhost:10000/"
 		},
 
 		{
