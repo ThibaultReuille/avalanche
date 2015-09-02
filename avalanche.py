@@ -11,7 +11,6 @@ import os.path
 import imp
 import traceback
 
-
 context = dict()
 
 # ----- Plugins -----
@@ -38,40 +37,76 @@ class Node(object):
 
 		self.info = info
 		self.url = None
+		self.connectors = [ 'sub', 'pub' ] # Default connectors are subscribers/publishers
+
+		self.predecessors = list()
+
 		self.thread = None
 		self.tracing = False
-
-		if 'type' in self.info and self.info['type'] != 'stream':
+		if 'type' in self.info and self.info['type'] != 'virtual':
 			self.plugin = context['plugins'][self.info['type']](info)
 		else:
 			self.plugin = None
 
 class ZMQ_Node(Node):
 	def __init__(self, info):
-		super(ZMQ_Node, self).__init__(info)
 		global context
-
-		ctx = zmq.Context.instance()
+		super(ZMQ_Node, self).__init__(info)
 
 		if 'url' in self.info:
-			self.input = None
-			self.output = None
+			self.port = None
 			self.url = self.info['url']
-
-		elif 'port' in self.info:
-			self.input = ctx.socket(zmq.SUB)
-			self.output = ctx.socket(zmq.PUB)
-
-			port = self.info['port']
-			self.url = "tcp://localhost:{0}/".format(port)
-			self.output.bind("tcp://*:{0}/".format(port))
-
 		else:
-			print("[ERROR] url/port field is missing!")
-			return
+			if 'port' in self.info:
+				self.port = self.info['port']
+			else:
+				self.port = context['ports']['next']
+				if self.port > context['ports']['stop']:
+					print("[WARNING]\tDefined port range is too small for pipeline! Collision may happen.")
+				context['ports']['next'] += 1
+				print("\tAutomatic port: {0}".format(self.port))			
+			self.url = "tcp://localhost:{0}".format(self.port)
 
-		print("\tURL: {0}".format(self.url))
+		if 'connectors' in self.info:
+			self.connectors = self.info['connectors']
 
+	def initialize(self):
+		ctx = zmq.Context.instance()
+
+		# Input Connector
+		if self.connectors[0] is None:
+			self.input = None
+		elif self.connectors[0] == "sub":
+			self.input = ctx.socket(zmq.SUB)
+		elif self.connectors[0] == "pull":
+			self.input = ctx.socket(zmq.PULL)
+		else:
+			print("[ERROR] '{0}': Unknown connector type!".format(self.connectors[0]))
+
+		# Output Connector
+		if self.connectors[1] is None:
+			self.output = None
+		elif self.connectors[1] == "pub":
+			self.output = ctx.socket(zmq.PUB)
+		elif self.connectors[1] == "push":
+			self.output = ctx.socket(zmq.PUSH)
+		else:
+			print("[ERROR] '{0}': Unknown connector type!".format(self.connectors[1]))
+
+		if self.port is not None:
+			self.url = "tcp://localhost:{0}".format(self.port)
+			self.output.bind("tcp://*:{0}".format(self.port))
+			print("\tBinding {0} ...".format(self.url))
+
+		for pred in self.predecessors:
+			src_url = pred['url']
+			print("\tConnecting to {0} ...".format(src_url))
+			
+			self.input.connect(src_url)
+
+			if self.connectors[0] == "sub":
+				self.input.setsockopt(zmq.SUBSCRIBE, '')
+		
 	def trace(self, message):
 		if self.tracing:
 			if '#' not in message:
@@ -80,6 +115,7 @@ class ZMQ_Node(Node):
 				message['#']['path'].append(self.info['id'])
 	
 	def run(self):
+		self.initialize()
 		self.plugin.run(self)
 	
 # ----- Edges -----
@@ -98,10 +134,9 @@ class ZMQ_Edge(Edge):
 		self.info = info
 		self.src = context['graph'].nodes[info['src']]
 		self.dst = context['graph'].nodes[info['dst']]
+		
 		print("\t. Connecting {0} and {1} ...".format(self.src.info['id'], self.dst.info['id']))
-
-		self.dst.input.connect(self.src.url)
-		self.dst.input.setsockopt(zmq.SUBSCRIBE, '')
+		self.dst.predecessors.append({ "url" : self.src.url })
 
 	def run(self):
 		pass
@@ -130,6 +165,7 @@ class Graph(object):
 		for k in self.nodes.keys():
 			if self.nodes[k].plugin is None:
 				continue
+			repr(self.nodes[k])
 			self.nodes[k].thread = threading.Thread(target=self.nodes[k].run)
 			self.nodes[k].thread.start()
 			self.threads.append(self.nodes[k].thread)
@@ -150,7 +186,7 @@ def load_module(code_path):
         finally:
             try: fin.close()
             except: pass
-    except ImportError, x:
+    except (ImportError, x):
         traceback.print_exc(file = sys.stderr)
         raise
     except:
@@ -186,7 +222,7 @@ def main(conf):
 		context['graph'].create_node(item)
 
 	edges = dict()
-	for item in reversed(conf['edges']): # NOTE : Naive topological sort
+	for item in conf['edges']:
 		print("[EDGE] {0}: {1} -> {2}".format(item['id'], item['src'], item['dst']))
 		context['graph'].create_edge(item)
 
@@ -201,10 +237,17 @@ def main(conf):
 
 if __name__ == "__main__":
 
-	if len(sys.argv) != 2:
-		print("Usage: {0} <conf.json>".format(sys.argv[0]))
+	if len(sys.argv) != 3:
+		print("Usage: {0} <conf.json> <port-range>".format(sys.argv[0]))
 		sys.exit(0)
-	
+
+	ports = [ int(p) for p in sys.argv[2].split('-') ]
+	context['ports'] = {
+		'start' : ports[0],
+		'stop' : ports[1],
+		'next' : ports[0]
+	}
+
 	with open(sys.argv[1], "rU") as conf:
 		jconf = json.load(conf)
 		main(jconf)
