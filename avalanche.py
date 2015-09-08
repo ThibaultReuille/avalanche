@@ -186,7 +186,7 @@ def load_module(code_path):
         finally:
             try: fin.close()
             except: pass
-    except (ImportError, x):
+    except ImportError, x:
         traceback.print_exc(file = sys.stderr)
         raise
     except:
