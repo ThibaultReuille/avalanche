@@ -1,3 +1,5 @@
+import plugins.base
+
 import json
 import fnmatch
 
@@ -36,7 +38,7 @@ class MatchFilter(Filter):
 				return False
 		return True
 
-class Plugin(object):
+class Plugin(plugins.base.Plugin):
 	def __init__(self, info):
 
 		processor_info = info['attributes']['processor']
@@ -55,20 +57,14 @@ class Plugin(object):
 			except Exception, e:
 				print("[ERROR] Couldn't parse matcher processor: {0}".format(str(e)))
 
-				
-	def run(self, node):
-		while True:
-			data = node.input.recv()
-			message = json.loads(data)
-
+	def process_message(self, message):
 			result = True
 			for item in self.processor:
 				result = result and (item.test(message) == item.result)
 				if not result:
 					break
 
-			if result:
-				node.output.send_json(message)
+			return message if result else None
 	
 if __name__ == "__main__":
 	print("Please import this file!")

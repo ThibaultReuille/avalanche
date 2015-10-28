@@ -1,0 +1,55 @@
+{
+	"attributes" : {
+		"plugins" : [
+			{ "name" : "random", "filename" : "plugins/test/random.py" },
+			{ "name" : "counter", "filename" : "plugins/test/counter.py" },
+			{ "name" : "tagger", "filename" : "plugins/test/tagger.py" }
+		]
+	},
+
+	"nodes" : [
+		{
+			"id" : 0,
+			"type" : "random"
+		},
+
+
+		{
+			"id" : 1,
+			"type" : "counter"
+		},
+		{
+			"id" : 2,
+			"type" : "tagger",
+			"attributes" :
+			{
+				"field" : "foo",
+				"value" : "bar"
+			}
+		},
+
+		{
+			"id" : 3,
+			"type" : "rack",
+			"plugins" :
+			[
+				{ "type" : "counter" },
+				{
+					"type" : "tagger", 
+					"attributes" :
+					{
+						"field" : "foo",
+						"value" : "bar"
+					}
+				}
+			]
+		}
+	],
+
+	"edges" : [
+		{ "id" : 0, "src" : 0, "dst" : 1 },
+		{ "id" : 1, "src" : 1, "dst" : 2 },
+
+		{ "id" : 2, "src" : 0, "dst" : 3 }
+	]
+} 

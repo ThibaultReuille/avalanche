@@ -11,23 +11,11 @@ import os.path
 import imp
 import traceback
 
+from abc import ABCMeta, abstractmethod
+
+import plugins.base
+
 context = dict()
-
-# ----- Plugins -----
-
-class Plugin(object):
-	def __init__(self):
-		pass
-
-	def run(self, node):
-		while True:
-			data = node.input.recv()
-			if node.tracing:
-				message = json.loads(data)
-				node.trace(message)
-				node.output.send_json(message)
-			else:
-				node.output.send(data)
 
 # ----- Nodes -----
 
@@ -42,8 +30,14 @@ class Node(object):
 		self.predecessors = list()
 
 		self.thread = None
-		self.tracing = False
-		if 'type' in self.info and self.info['type'] != 'virtual':
+		if 'type' in self.info and self.info['type'] == 'rack':
+			self.plugin = plugins.base.PluginRack()
+			for p in self.info['plugins']:
+				rack_plugin_type = p['type']
+				print("\t+ {0}".format(rack_plugin_type))
+				rack_plugin = context['plugins'][rack_plugin_type](p)
+				self.plugin.plugins.append(rack_plugin)
+		elif 'type' in self.info and self.info['type'] != 'virtual':
 			self.plugin = context['plugins'][self.info['type']](info)
 		else:
 			self.plugin = None
@@ -69,13 +63,6 @@ class ZMQ_Node(Node):
 
 		if 'connectors' in self.info:
 			self.connectors = self.info['connectors']
-
-	def setup_socket(self, socket):
-		#socket.setsockopt(zmq.LINGER, 1)
-		#socket.setsockopt(zmq.CONFLATE, 1)
-		#socket.setsockopt(zmq.SNDHWM, 1)
-		#socket.setsockopt(zmq.RCVHWM, 1)
-		pass
 
 	def initialize(self):
 		ctx = zmq.Context.instance()
@@ -104,8 +91,6 @@ class ZMQ_Node(Node):
 		if self.port is not None:
 			self.url = "tcp://localhost:{0}".format(self.port)
 
-			self.setup_socket(self.output)
-
 			self.output.bind("tcp://*:{0}".format(self.port))
 			print("\tBinding {0} ...".format(self.url))
 
@@ -113,23 +98,15 @@ class ZMQ_Node(Node):
 			src_url = pred['url']
 			print("\tConnecting to {0} ...".format(src_url))
 			
-			self.setup_socket(self.input)
-
 			self.input.connect(src_url)
 
 			if self.connectors[0] == "sub":
 				self.input.setsockopt(zmq.SUBSCRIBE, '')
 		
-	def trace(self, message):
-		if self.tracing:
-			if '#' not in message:
-				message['#']  = { 'path' : [ self.info['id'] ] }
-			else:
-				message['#']['path'].append(self.info['id'])
-	
 	def run(self):
 		self.initialize()
-		self.plugin.run(self)
+		if self.plugin is not None:
+			self.plugin.run(self)
 	
 # ----- Edges -----
 
@@ -159,7 +136,6 @@ class Graph(object):
 	def __init__(self):
 		self.nodes = dict()
 		self.edges = dict()
-
 		self.threads = list()
 
 	def create_node(self, info):

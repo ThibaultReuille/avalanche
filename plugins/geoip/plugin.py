@@ -1,18 +1,16 @@
+import plugins.base
+
 import pygeoip
 import json
 import os
 
-class Plugin(object):
+class Plugin(plugins.base.Plugin):
 	def __init__(self, info):
 		current_dir = os.path.dirname(os.path.realpath(__file__))
 		self.gi_asn = pygeoip.GeoIP(current_dir + "/GeoIPASNum.dat")
 		self.actions = info['attributes']['actions']
 
-	def run(self, node):
-		while True:
-			data = node.input.recv()
-			message = json.loads(data)
-
+	def process_message(self, message):
 			geoip = dict()
 			
 			for action in self.actions:
@@ -33,7 +31,8 @@ class Plugin(object):
 
 			message['geoip'] = geoip
 
-			node.output.send_json(message)
-	
+			return message
+
+
 if __name__ == "__main__":
 	print("Please import this file!")
