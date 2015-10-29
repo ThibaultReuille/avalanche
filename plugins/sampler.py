@@ -1,7 +1,7 @@
+import plugins.base
 import random
-import json
 
-class Plugin(object):
+class Plugin(plugins.base.Plugin):
 	def __init__(self, info):
 		self.probability = info['attributes']['probability']
 

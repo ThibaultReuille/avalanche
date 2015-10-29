@@ -3,7 +3,8 @@
 		"plugins" : [
 			{ "name" : "random", "filename" : "plugins/test/random.py" },
 			{ "name" : "counter", "filename" : "plugins/test/counter.py" },
-			{ "name" : "tagger", "filename" : "plugins/test/tagger.py" }
+			{ "name" : "tagger", "filename" : "plugins/test/tagger.py" },
+			{ "name" : "unifier", "filename" : "plugins/unifier.py" }
 		]
 	},
 
@@ -33,13 +34,26 @@
 			"type" : "rack",
 			"plugins" :
 			[
-				{ "type" : "counter" },
+				{
+					"type" : "counter",
+					"attributes" : 
+					{
+					}
+				},
 				{
 					"type" : "tagger", 
 					"attributes" :
 					{
 						"field" : "foo",
 						"value" : "bar"
+					}
+				},
+				{
+					"type" : "unifier",
+					"attributes" : 
+					{
+						"fields" : [ "number" ],
+						"history" : 10
 					}
 				}
 			]

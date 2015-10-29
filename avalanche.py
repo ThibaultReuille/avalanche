@@ -231,6 +231,9 @@ if __name__ == "__main__":
 		sys.exit(0)
 
 	ports = [ int(p) for p in sys.argv[2].split('-') ]
+	if len(ports) == 1:
+		ports.append(65535)
+
 	context['ports'] = {
 		'start' : ports[0],
 		'stop' : ports[1],
