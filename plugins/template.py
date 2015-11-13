@@ -1,6 +1,18 @@
 import json
+import plugins.base
 
-class Plugin(object):
+class Plugin1(plugins.base.Plugin):
+	def __init__(self, info):
+		# NOTE: The info argument contains the full node definition
+		# written in the pipeline configuration file.
+		pass
+
+	def process_message(self, message):
+		# NOTE : Here we can process the message, add field, remove, etc.
+		# Retuning None drops the message from the pipeline.
+		return message
+
+class Plugin2(plugins.base.Plugin):
 	def __init__(self, info):
 		# NOTE: The info argument contains the full node definition
 		# written in the pipeline configuration file.
