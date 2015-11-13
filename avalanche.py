@@ -91,8 +91,9 @@ class ZMQ_Node(Node):
 		if self.port is not None:
 			self.url = "tcp://localhost:{0}".format(self.port)
 
-			self.output.bind("tcp://*:{0}".format(self.port))
-			print("\tBinding {0} ...".format(self.url))
+			if self.output is not None:
+				self.output.bind("tcp://*:{0}".format(self.port))
+				print("\tBinding {0} ...".format(self.url))
 
 		for pred in self.predecessors:
 			src_url = pred['url']
