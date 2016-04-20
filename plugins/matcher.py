@@ -2,6 +2,7 @@ import plugins.base
 
 import json
 import fnmatch
+import re
 
 class Filter(object):
 	def __init__(self, attributes):
@@ -38,6 +39,20 @@ class MatchFilter(Filter):
 				return False
 		return True
 
+class RegexFilter(Filter):
+	def __init__(self, attributes):
+		super(RegexFilter, self).__init__(attributes)
+
+		self.expressions = list()
+		for element in self.values:
+			self.expressions.append(re.compile(element))
+
+	def test(self, message):
+		for expression in self.expressions:
+			if not expression.match(message[self.field]):
+				return False
+		return True
+
 class Plugin(plugins.base.Plugin):
 	def __init__(self, info):
 
@@ -51,6 +66,8 @@ class Plugin(plugins.base.Plugin):
 					p = InFilter(processor_info[i])
 				elif processor_info[i]['condition'] == "match":
 					p = MatchFilter(processor_info[i])
+				elif processor_info[i]['condition'] == "regex":
+					p = RegexFilter(processor_info[i])
 				else:
 					raise Exception("Unknown condition: '{0}'!".format(processor_info['condition']))
 				self.processor.append(p)

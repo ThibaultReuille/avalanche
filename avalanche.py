@@ -72,6 +72,7 @@ class ZMQ_Node(Node):
 			self.input = None
 		elif self.connectors[0] == "sub":
 			self.input = ctx.socket(zmq.SUB)
+			#self.input.set_hwm(10)
 		elif self.connectors[0] == "pull":
 			self.input = ctx.socket(zmq.PULL)
 			self.input.setsockopt(zmq.CONFLATE, 1)
@@ -83,11 +84,19 @@ class ZMQ_Node(Node):
 			self.output = None
 		elif self.connectors[1] == "pub":
 			self.output = ctx.socket(zmq.PUB)
+			#self.output.set_hwm(10)
 		elif self.connectors[1] == "push":
 			self.output = ctx.socket(zmq.PUSH)
 		else:
 			print("[ERROR] '{0}': Unknown connector type!".format(self.connectors[1]))
 
+		''' DEBUG INFO
+		if self.input is not None:
+			print(self.input.get_hwm())
+		if self.output is not None:
+			print(self.output.get_hwm())
+		'''
+		
 		if self.port is not None:
 			self.url = "tcp://localhost:{0}".format(self.port)
 
