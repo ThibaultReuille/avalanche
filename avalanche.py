@@ -10,6 +10,8 @@ import md5
 import os.path
 import imp
 import traceback
+import string
+import random
 
 from abc import ABCMeta, abstractmethod
 
@@ -72,10 +74,14 @@ class ZMQ_Node(Node):
 			self.input = None
 		elif self.connectors[0] == "sub":
 			self.input = ctx.socket(zmq.SUB)
-			#self.input.set_hwm(10)
 		elif self.connectors[0] == "pull":
 			self.input = ctx.socket(zmq.PULL)
-			self.input.setsockopt(zmq.CONFLATE, 1)
+		elif self.connectors[0] == "dealer":
+			self.input = ctx.socket(zmq.DEALER)
+
+			self.identity = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
+
+			self.input.setsockopt(zmq.IDENTITY, self.identity)
 		else:
 			print("[ERROR] '{0}': Unknown connector type!".format(self.connectors[0]))
 
@@ -84,17 +90,18 @@ class ZMQ_Node(Node):
 			self.output = None
 		elif self.connectors[1] == "pub":
 			self.output = ctx.socket(zmq.PUB)
-			#self.output.set_hwm(10)
 		elif self.connectors[1] == "push":
 			self.output = ctx.socket(zmq.PUSH)
+		elif self.connectors[1] == "router":
+			self.output = ctx.socket(zmq.ROUTER)
 		else:
 			print("[ERROR] '{0}': Unknown connector type!".format(self.connectors[1]))
 
 		''' DEBUG INFO
-		if self.input is not None:
-			print(self.input.get_hwm())
-		if self.output is not None:
-			print(self.output.get_hwm())
+		print("HWMs: {0} -> {1}".format(
+			self.input.get_hwm() if self.input is not None else "void",
+			self.output.get_hwm() if self.output is not None else "void",
+		))
 		'''
 		
 		if self.port is not None:
@@ -112,7 +119,7 @@ class ZMQ_Node(Node):
 
 			if self.connectors[0] == "sub":
 				self.input.setsockopt(zmq.SUBSCRIBE, '')
-		
+
 	def run(self):
 		self.initialize()
 		if self.plugin is not None:
