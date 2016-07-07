@@ -26,17 +26,28 @@ class Node(object):
 		global context
 
 		self.info = info
-		self.url = None
-		self.connectors = [ 'sub', 'pub' ] # Default connectors are subscribers/publishers
+
+		# NOTE: Default connectors are sub/pub
+		if "connectors" not in self.info:
+			self.info['connectors'] = [ "sub", "pub" ]
+
+		self.connectors = list()
+		for connector in self. info['connectors']:
+			if isinstance(connector, dict):
+				self.connectors.append(connector)
+			else:
+				self.connectors.append({ 'type' : connector })
 
 		self.predecessors = list()
+		self.successors = list()
 
 		self.thread = None
 		if 'type' in self.info and self.info['type'] == 'rack':
 			self.plugin = plugins.base.PluginRack()
+			print("\t. plugins")
 			for p in self.info['plugins']:
 				rack_plugin_type = p['type']
-				print("\t+ {0}".format(rack_plugin_type))
+				print("\t\t+ {0}".format(rack_plugin_type))
 				rack_plugin = context['plugins'][rack_plugin_type](p)
 				self.plugin.plugins.append(rack_plugin)
 		elif 'type' in self.info and self.info['type'] != 'virtual':
@@ -49,79 +60,109 @@ class ZMQ_Node(Node):
 		global context
 		super(ZMQ_Node, self).__init__(info)
 
-		if 'url' in self.info:
-			self.port = None
-			self.url = self.info['url']
-		else:
-			if 'port' in self.info:
-				self.port = self.info['port']
-			else:
-				self.port = context['ports']['next']
-				if self.port > context['ports']['stop']:
-					print("[WARNING]\tDefined port range is too small for pipeline! Collision may happen.")
-				context['ports']['next'] += 1
-				print("\tAutomatic port: {0}".format(self.port))			
-			self.url = "tcp://localhost:{0}".format(self.port)
+		binders = [ 'pull', 'pub', 'router' ]
 
-		if 'connectors' in self.info:
-			self.connectors = self.info['connectors']
+		for connector in self.connectors:
+			if connector['type'] is None:
+				continue
+			if connector['type'] in binders:
+				if 'url' in connector:
+					print("    . {0}: {1}".format(connector['type'], connector['url']))
+				elif 'port' not in connector:
+					if context['ports']['next'] > context['ports']['stop']:
+						print("[WARNING]\tDefined port range is too small for pipeline! Collision may happen.")
+					connector['port'] = context['ports']['next']
+					context['ports']['next'] += 1
+					print("\t. {0}: {1}".format(connector['type'], connector['port']))			
+			else:
+				print("\t. {0}".format(connector['type']))
+
+		#print("    Connectors: {0}".format(self.connectors))
 
 	def initialize(self):
-		ctx = zmq.Context.instance()
 
-		# Input Connector
-		if self.connectors[0] is None:
+		if self.info['type'] == "virtual":
+			return
+
+		context = zmq.Context.instance()
+
+		# ------ Input -----
+
+		input_connector = self.connectors[0]
+
+		if input_connector['type'] is None:
 			self.input = None
-		elif self.connectors[0] == "sub":
-			self.input = ctx.socket(zmq.SUB)
-		elif self.connectors[0] == "pull":
-			self.input = ctx.socket(zmq.PULL)
-		elif self.connectors[0] == "dealer":
-			self.input = ctx.socket(zmq.DEALER)
 
-			self.identity = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
+		elif input_connector['type'] == "sub":
+			self.input = context.socket(zmq.SUB)
+			for predecessor in self.predecessors:
+				if 'url' in predecessor.connectors[1]:
+					src_url = predecessor.connectors[1]['url']
+				else:
+					src_url = "tcp://localhost:{0}".format(predecessor.connectors[1]['port'])
 
-			self.input.setsockopt(zmq.IDENTITY, self.identity)
-		else:
-			print("[ERROR] '{0}': Unknown connector type!".format(self.connectors[0]))
-
-		# Output Connector
-		if self.connectors[1] is None:
-			self.output = None
-		elif self.connectors[1] == "pub":
-			self.output = ctx.socket(zmq.PUB)
-		elif self.connectors[1] == "push":
-			self.output = ctx.socket(zmq.PUSH)
-		elif self.connectors[1] == "router":
-			self.output = ctx.socket(zmq.ROUTER)
-		else:
-			print("[ERROR] '{0}': Unknown connector type!".format(self.connectors[1]))
-
-		''' DEBUG INFO
-		print("HWMs: {0} -> {1}".format(
-			self.input.get_hwm() if self.input is not None else "void",
-			self.output.get_hwm() if self.output is not None else "void",
-		))
-		'''
-		
-		if self.port is not None:
-			self.url = "tcp://localhost:{0}".format(self.port)
-
-			if self.output is not None:
-				self.output.bind("tcp://*:{0}".format(self.port))
-				print("\tBinding {0} ...".format(self.url))
-
-		for pred in self.predecessors:
-			src_url = pred['url']
-			print("\tConnecting to {0} ...".format(src_url))
-			
-			self.input.connect(src_url)
-
-			if self.connectors[0] == "sub":
+				print("\tConnecting sub to {0} ...".format(src_url))
+				self.input.connect(src_url)
 				self.input.setsockopt(zmq.SUBSCRIBE, '')
 
-	def run(self):
+		elif input_connector['type'] == "pull":
+			self.input = context.socket(zmq.PULL)
+			url = "tcp://*:{0}".format(input_connector['port'])
+			print("\tBinding pull on {0} ...".format(url))
+			self.input.bind(url)
+
+		elif input_connector['type'] == "dealer":
+			self.input = context.socket(zmq.DEALER)
+			self.identity = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
+			self.input.setsockopt(zmq.IDENTITY, self.identity)
+			for predecessor in self.predecessors:
+				if 'url' in predecessor.connectors[1]:
+					src_url = predecessor.connectors[1]['url']
+				else:
+					src_url = "tcp://localhost:{0}".format(predecessor.connectors[1]['port'])
+
+				print("\tConnecting dealer to {0} ...".format(src_url))
+				self.input.connect(src_url)
+
+		else:
+			print("[ERROR] '{0}': Unsupported input connector type!".format(self.connectors[0]))
+
+		# ----- Output -----
+
+		output_connector = self.connectors[1]
+
+		if output_connector['type'] is None:
+			self.output = None
+
+		elif output_connector['type'] == "pub":
+			self.output = context.socket(zmq.PUB)
+			url = "tcp://*:{0}".format(output_connector['port'])
+			print("\tBinding pub on {0} ...".format(url))
+			self.output.bind(url)
+
+		elif output_connector['type'] == "push":
+			self.output = context.socket(zmq.PUSH)
+			for successor in self.successors:
+				if 'url' in successor.connectors[0]:
+					dst_url = successor.connectors[0]['url']
+				else:
+					dst_url = "tcp://localhost:{0}".format(successor.connectors[0]['port'])
+
+				print("\tConnecting push to {0} ...".format(dst_url))
+				self.output.connect(dst_url)
+
+		elif output_connector['type'] == "router":
+			self.output = context.socket(zmq.ROUTER)
+			url = "tcp://*:{0}".format(output_connector['port'])
+			print("\tBinding router on {0} ...".format(url))
+			self.output.bind(url)
+
+		else:
+			print("[ERROR] '{0}': Unsupported output connector type!".format(self.connectors[1]))
+
+ 	def run(self):
 		self.initialize()
+		# TODO : We should have plugins wait here for all to be ready
 		if self.plugin is not None:
 			self.plugin.run(self)
 	
@@ -143,13 +184,13 @@ class ZMQ_Edge(Edge):
 		self.dst = context['graph'].nodes[info['dst']]
 		
 		print("\t. Connecting {0} and {1} ...".format(self.src.info['id'], self.dst.info['id']))
-		self.dst.predecessors.append({ "url" : self.src.url })
+		self.dst.predecessors.append(self.src)
+		self.src.successors.append(self.dst)
 
 	def run(self):
 		pass
 
 class Graph(object):
-
 	def __init__(self):
 		self.nodes = dict()
 		self.edges = dict()
