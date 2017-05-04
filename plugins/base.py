@@ -6,6 +6,8 @@ class Plugin(object):
 	def __init__(self):
 		pass
 
+	#TODO: Log method
+
 	def run(self, node):
 		while True:
 			data = node.input.recv()
