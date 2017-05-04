@@ -44,10 +44,10 @@ class Node(object):
 		self.thread = None
 		if 'type' in self.info and self.info['type'] == 'rack':
 			self.plugin = plugins.base.PluginRack()
-			print("\t. plugins")
+			print("    . plugins")
 			for p in self.info['plugins']:
 				rack_plugin_type = p['type']
-				print("\t\t+ {0}".format(rack_plugin_type))
+				print("        + {0}".format(rack_plugin_type))
 				rack_plugin = context['plugins'][rack_plugin_type](p)
 				self.plugin.plugins.append(rack_plugin)
 		elif 'type' in self.info and self.info['type'] != 'virtual':
@@ -70,12 +70,12 @@ class ZMQ_Node(Node):
 					print("    . {0}: {1}".format(connector['type'], connector['url']))
 				elif 'port' not in connector:
 					if context['ports']['next'] > context['ports']['stop']:
-						print("[WARNING]\tDefined port range is too small for pipeline! Collision may happen.")
+						print("[WARNING] Defined port range is too small for pipeline! Collision may happen.")
 					connector['port'] = context['ports']['next']
 					context['ports']['next'] += 1
-					print("\t. {0}: {1}".format(connector['type'], connector['port']))			
+					print("    . {0}: {1}".format(connector['type'], connector['port']))
 			else:
-				print("\t. {0}".format(connector['type']))
+				print("    . {0}".format(connector['type']))
 
 		#print("    Connectors: {0}".format(self.connectors))
 
@@ -101,14 +101,14 @@ class ZMQ_Node(Node):
 				else:
 					src_url = "tcp://localhost:{0}".format(predecessor.connectors[1]['port'])
 
-				print("\tConnecting sub to {0} ...".format(src_url))
+				print("    Connecting sub to {0} ...".format(src_url))
 				self.input.connect(src_url)
 				self.input.setsockopt(zmq.SUBSCRIBE, '')
 
 		elif input_connector['type'] == "pull":
 			self.input = context.socket(zmq.PULL)
 			url = "tcp://*:{0}".format(input_connector['port'])
-			print("\tBinding pull on {0} ...".format(url))
+			print("    Binding pull on {0} ...".format(url))
 			self.input.bind(url)
 
 		elif input_connector['type'] == "dealer":
@@ -121,7 +121,7 @@ class ZMQ_Node(Node):
 				else:
 					src_url = "tcp://localhost:{0}".format(predecessor.connectors[1]['port'])
 
-				print("\tConnecting dealer to {0} ...".format(src_url))
+				print("    Connecting dealer to {0} ...".format(src_url))
 				self.input.connect(src_url)
 
 		else:
@@ -137,7 +137,7 @@ class ZMQ_Node(Node):
 		elif output_connector['type'] == "pub":
 			self.output = context.socket(zmq.PUB)
 			url = "tcp://*:{0}".format(output_connector['port'])
-			print("\tBinding pub on {0} ...".format(url))
+			print("    Binding pub on {0} ...".format(url))
 			self.output.bind(url)
 
 		elif output_connector['type'] == "push":
@@ -148,13 +148,13 @@ class ZMQ_Node(Node):
 				else:
 					dst_url = "tcp://localhost:{0}".format(successor.connectors[0]['port'])
 
-				print("\tConnecting push to {0} ...".format(dst_url))
+				print("    Connecting push to {0} ...".format(dst_url))
 				self.output.connect(dst_url)
 
 		elif output_connector['type'] == "router":
 			self.output = context.socket(zmq.ROUTER)
 			url = "tcp://*:{0}".format(output_connector['port'])
-			print("\tBinding router on {0} ...".format(url))
+			print("    Binding router on {0} ...".format(url))
 			self.output.bind(url)
 
 		else:
