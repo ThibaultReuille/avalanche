@@ -3,6 +3,7 @@ import plugins.base
 
 class Plugin1(plugins.base.Plugin):
 	def __init__(self, info):
+		super(Plugin, self).__init__(info)
 		# NOTE: The info argument contains the full node definition
 		# written in the pipeline configuration file.
 		pass
@@ -14,6 +15,7 @@ class Plugin1(plugins.base.Plugin):
 
 class Plugin2(plugins.base.Plugin):
 	def __init__(self, info):
+		super(Plugin, self).__init__(info)
 		# NOTE: The info argument contains the full node definition
 		# written in the pipeline configuration file.
 		pass

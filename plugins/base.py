@@ -1,61 +1,68 @@
 import json
 
+import datetime
+
 from collections import deque
 
 class Plugin(object):
-	def __init__(self):
-		pass
+    def __init__(self, configuration):
+        self.configuration = configuration
 
-	#TODO: Log method
+    def log(self, message):
+        print("[{}] {} - {}".format(
+            self.configuration["type"],
+            datetime.datetime.now().strftime("%Y%m%d %H:%M:%S"),
+            message
+        ))
 
-	def run(self, node):
-		while True:
-			data = node.input.recv()
-			message = json.loads(data)
+    def run(self, node):
+        while True:
+            data = node.input.recv()
+            message = json.loads(data)
 
-			output = self.process_message(message)
-			
-			if output is None:
-				continue
+            output = self.process_message(message)
+            
+            if output is None:
+                continue
 
-			if isinstance(output, list):
-				for msg in output:
-					node.output.send_json(msg)
-			else:
-				node.output.send_json(output)
+            if isinstance(output, list):
+                for msg in output:
+                    node.output.send_json(msg)
+            else:
+                node.output.send_json(output)
 
-	def process_message(self, message):
-		return message  
+    def process_message(self, message):
+        return message  
 
 class PluginRack(Plugin):
-	def __init__(self):
-		self.plugins = list()
+    def __init__(self):
+        self.plugins = list()
 
-	def run(self, node):
-		while True:
+    def run(self, node):
+        while True:
 
-			data = node.input.recv()
-			message = json.loads(data)
+            data = node.input.recv()
+            message = json.loads(data)
 
-			input_messages = deque()
-			input_messages.append(message)
+            input_messages = deque()
+            input_messages.append(message)
 
-			output_messages = deque()
+            output_messages = deque()
 
-			for plugin in self.plugins:
+            for plugin in self.plugins:
 
-				while len(input_messages) > 0:
-					msg = input_messages.popleft()
-					output = plugin.process_message(msg)
+                while len(input_messages) > 0:
+                    msg = input_messages.popleft()
+                    output = plugin.process_message(msg)
 
-					if output is None:
-						continue
-					elif isinstance(output, list):
-						output_messages.extend(output)
-					else:
-						output_messages.append(output)
+                    if output is None:
+                        continue
+                    elif isinstance(output, list):
+                        output_messages.extend(output)
+                    else:
+                        output_messages.append(output)
 
-				input_messages, output_messages = output_messages, input_messages
+                input_messages, output_messages = output_messages, input_messages
 
-			while len(input_messages) > 0:
-				node.output.send_json(input_messages.popleft())
+            while len(input_messages) > 0:
+                node.output.send_json(input_messages.popleft())
